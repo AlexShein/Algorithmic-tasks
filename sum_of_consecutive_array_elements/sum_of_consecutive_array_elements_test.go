@@ -38,3 +38,12 @@ func TestMaximumSubarraySum(t *testing.T) {
 		}
 	}
 }
+
+func TestMaximumSubarraySumSimplified(t *testing.T) {
+	for _, testCase := range testCases {
+		funcRes := MaximumSubarraySumSimplified(testCase.input)
+		if funcRes != testCase.expected {
+			t.Errorf("Input %v : Expected %d, Got %d\n", testCase.input, testCase.expected, funcRes)
+		}
+	}
+}

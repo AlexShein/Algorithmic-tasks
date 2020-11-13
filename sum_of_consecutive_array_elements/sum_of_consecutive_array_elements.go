@@ -1,5 +1,23 @@
 package sumofconsecutivearrayelements
 
+func maxOfTwo(first int, second int) int {
+	if first > second {
+		return first
+	}
+	return second
+}
+
+// MaximumSubarraySumSimplified finds maximum sum of consecutive elements in the input array
+func MaximumSubarraySumSimplified(numbers []int) (res int) {
+	sumAcc := 0
+	for _, i := range numbers {
+		sumAcc += i
+		res = maxOfTwo(res, sumAcc)
+		sumAcc = maxOfTwo(sumAcc, 0)
+	}
+	return
+}
+
 func max(values []int) (res int) {
 	for _, value := range values {
 		if value > res {
