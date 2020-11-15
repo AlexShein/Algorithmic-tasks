@@ -1,6 +1,6 @@
 package parse
 
-// Parse solves the kata's task
+// Parse solves the kata's task - runs commands from simple DSL one-by-one
 func Parse(input string) (res []int) {
 	buffer := 0
 	res = []int{}
