@@ -42,7 +42,7 @@ var testCases = []rotationResult{
 func TestRotateLeft(t *testing.T) {
 	for _, testCase := range testCases {
 		if funcResult := RotateLeft(testCase.input.number, testCase.input.arr); !reflect.DeepEqual(funcResult, testCase.output) {
-			t.Errorf("Input: %v, Expected %v, Got %v", testCase.input, testCase.output, RotateLeft(testCase.input.number, testCase.input.arr))
+			t.Errorf("Input: %v, Expected %v, Got %v", testCase.input, testCase.output, funcResult)
 		}
 	}
 }
