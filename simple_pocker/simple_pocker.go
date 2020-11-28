@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"math"
-	"os"
-	"strings"
+	"sort"
 	"unicode"
 )
 
@@ -22,42 +19,93 @@ func (hand wrongLengthError) Error() string {
 }
 
 var cardsScoresMap = map[rune]int{
-	'2': 101,
-	'3': 102,
-	'4': 103,
-	'5': 104,
-	'6': 105,
-	'7': 106,
-	'8': 107,
-	'9': 108,
-	'T': 109,
-	'J': 110,
-	'Q': 111,
-	'K': 112,
-	'A': 113,
+	'2': 2,
+	'3': 3,
+	'4': 4,
+	'5': 5,
+	'6': 6,
+	'7': 7,
+	'8': 8,
+	'9': 9,
+	'T': 10,
+	'J': 11,
+	'Q': 12,
+	'K': 13,
+	'A': 14,
 }
 
-const handOneOutcome = "Hand 1"
-const handTwoOutcome = "Hand 2"
-const tieOutcome = "Tie"
+const (
+	handOneOutcome = "Hand 1"
+	handTwoOutcome = "Hand 2"
+	tieOutcome     = "Tie"
+)
+const (
+	higherComparissonOutcome = 1
+	lowerComparissonOutcome  = -1
+	equalComparissonOutcome  = 0
+)
 
-// computeHandScore calculates "score" of cards set so that two sets could be compared using comparison operators < > ==
-func computeHandScore(hand [5]rune) (result int) {
-	cardsCounts := map[rune]int{}
+type cardsHand [5]rune
+
+func (hand *cardsHand) getCountsMap() map[rune]int {
+	result := map[rune]int{}
 	for _, card := range hand {
-		cardsCounts[card]++
+		result[card]++
 	}
-	for card, count := range cardsCounts {
-		result += int(math.Pow(float64(cardsScoresMap[card]), float64(count)))
-	}
-	return
+	return result
 }
 
-func findWinner(handOne [5]rune, handTwo [5]rune) string {
-	handOneScore, handTwoScore := computeHandScore(handOne), computeHandScore(handTwo)
-	if handOneScore > handTwoScore {
+// getIsCardLess returns a "less" function for two cards with cards array and cards counts passed as arguments
+func getIsCardLess(cards []rune, cardsCountsMap map[rune]int) func(i, j int) bool {
+	return func(i, j int) bool {
+		leftCard, rightCard := cards[i], cards[j]
+		return cardsCountsMap[leftCard] > cardsCountsMap[rightCard] || (cardsCountsMap[leftCard] == cardsCountsMap[rightCard] &&
+			cardsScoresMap[leftCard] > cardsScoresMap[rightCard])
+	}
+}
+
+/*
+compare incapsulates card sets comparisson logic: it calculates card counts in each hand
+and sorts them by counts and by cards scores (A has the highest, 2 - lowest).
+The final step is to iterate over both converted sets and to compare cards scores and counts.
+*/
+func (hand *cardsHand) compare(otherHand cardsHand) int {
+	leftCountsMap := hand.getCountsMap()
+	leftCardsUnique := make([]rune, 0, len(leftCountsMap))
+	for key := range leftCountsMap {
+		leftCardsUnique = append(leftCardsUnique, key)
+	}
+	sort.Slice(leftCardsUnique, getIsCardLess(leftCardsUnique, leftCountsMap))
+
+	rightCountsMap := otherHand.getCountsMap()
+	rightCardsUnique := make([]rune, 0, len(rightCountsMap))
+	for key := range rightCountsMap {
+		rightCardsUnique = append(rightCardsUnique, key)
+	}
+	sort.Slice(rightCardsUnique, getIsCardLess(rightCardsUnique, rightCountsMap))
+
+	for i, j := 0, 0; i < len(leftCardsUnique) && j < len(rightCardsUnique); {
+		leftCard, rightCard := leftCardsUnique[i], rightCardsUnique[j]
+		if leftCountsMap[leftCard] > rightCountsMap[rightCard] {
+			return higherComparissonOutcome
+		} else if leftCountsMap[leftCard] < rightCountsMap[rightCard] {
+			return lowerComparissonOutcome
+		} else if leftCountsMap[leftCard] == rightCountsMap[rightCard] && cardsScoresMap[leftCard] > cardsScoresMap[rightCard] {
+			return higherComparissonOutcome
+		} else if leftCountsMap[leftCard] == rightCountsMap[rightCard] && cardsScoresMap[leftCard] < cardsScoresMap[rightCard] {
+			return lowerComparissonOutcome
+		}
+		i++
+		j++
+	}
+	return equalComparissonOutcome
+}
+
+func findWinner(handOne, handTwo cardsHand) string {
+	comparissonResult := handOne.compare(handTwo)
+	if comparissonResult == higherComparissonOutcome {
 		return handOneOutcome
-	} else if handTwoScore > handOneScore {
+	} else if comparissonResult == lowerComparissonOutcome {
 		return handTwoOutcome
 	}
 	return tieOutcome
@@ -70,25 +118,25 @@ func isValidCard(card rune) bool {
 	return false
 }
 
-// convertHand casts passed card set to runes array
+// convertHand casts passed card set to cardsHand
 // It returns invalidCardError if it encounters non-ASCII/non-card symbol and
 // wrongLengthError if card set length is not 5
-func convertHand(hand string) ([5]rune, error) {
-	result := [5]rune{}
+func convertHand(hand string) (cardsHand, error) {
+	result := cardsHand{}
 	if len(hand) == 5 {
 		for i, card := range hand {
 			if card < unicode.MaxASCII && isValidCard(card) {
 				result[i] = card
 			} else {
-				return [5]rune{}, invalidCardError(card)
+				return cardsHand{}, invalidCardError(card)
 			}
 		}
 		return result, nil
 	}
-	return [5]rune{}, wrongLengthError(hand)
+	return cardsHand{}, wrongLengthError(hand)
 }
 
-// simplePocker wrapps convertation logic and findWinner calls
+// simplePocker wrapps convertation logic and findWinner call
 func simplePocker(rawHand1, rawHand2 string) (string, error) {
 	hand1, err := convertHand(rawHand1)
 	if err != nil {
@@ -100,39 +148,4 @@ func simplePocker(rawHand1, rawHand2 string) (string, error) {
 	}
 
 	return findWinner(hand1, hand2), nil
-}
-
-func main() {
-	if len(os.Args[1:]) > 0 && (os.Args[1] == "--help" || os.Args[1] == "-h") {
-		fmt.Println("A simple pocker winner finder program.")
-		fmt.Println("Developed by A. Shein")
-		fmt.Println("Usage: ")
-		fmt.Println(`echo 'QQAAJ\n22333' | ./simple_pocker`)
-		os.Exit(0)
-	}
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Running simple pocker.")
-	fmt.Println("Enter first card set: ")
-	rawHand1, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	rawHand1 = strings.TrimSuffix(rawHand1, "\n")
-	fmt.Println("Enter second card set: ")
-	rawHand2, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	rawHand2 = strings.TrimSuffix(rawHand2, "\n")
-
-	winner, err := simplePocker(rawHand1, rawHand2)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	fmt.Println("|Hand 1|Hand 2|Winner|")
-	fmt.Printf("|%s |%s |%6s|\n", rawHand1, rawHand2, winner)
-	os.Exit(0)
 }

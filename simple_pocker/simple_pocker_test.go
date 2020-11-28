@@ -60,16 +60,32 @@ var simplePockerTestCases = []simplePockerResult{
 	},
 	{
 		input: simplePockerInput{
-			handOne: "22234",
-			handTwo: "AAKKQ",
+			handOne: "AAKKQ",
+			handTwo: "22233",
+		},
+		output: handTwoOutcome,
+		err:    nil,
+	},
+	{
+		input: simplePockerInput{
+			handOne: "AA223",
+			handTwo: "KKQQJ",
 		},
 		output: handOneOutcome,
 		err:    nil,
 	},
 	{
 		input: simplePockerInput{
-			handOne: "AAQQT",
-			handTwo: "22233",
+			handOne: "AAAKK",
+			handTwo: "22223",
+		},
+		output: handTwoOutcome,
+		err:    nil,
+	},
+	{
+		input: simplePockerInput{
+			handOne: "32322",
+			handTwo: "AKAKA",
 		},
 		output: handTwoOutcome,
 		err:    nil,
@@ -78,6 +94,14 @@ var simplePockerTestCases = []simplePockerResult{
 		input: simplePockerInput{
 			handOne: "AAQQT",
 			handTwo: "TAQAQ",
+		},
+		output: tieOutcome,
+		err:    nil,
+	},
+	{
+		input: simplePockerInput{
+			handOne: "23456",
+			handTwo: "36425",
 		},
 		output: tieOutcome,
 		err:    nil,
@@ -119,7 +143,7 @@ var simplePockerTestCases = []simplePockerResult{
 func TestFindWinner(t *testing.T) {
 	for _, testCase := range simplePockerTestCases {
 		funcResult, err := simplePocker(testCase.input.handOne, testCase.input.handTwo)
-		assert.Equal(t, funcResult, testCase.output)
-		assert.IsType(t, testCase.err, err)
+		assert.Equal(t, testCase.output, funcResult, testCase.input)
+		assert.IsType(t, err, testCase.err)
 	}
 }
