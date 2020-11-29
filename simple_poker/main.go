@@ -9,14 +9,14 @@ import (
 
 func main() {
 	if len(os.Args[1:]) > 0 && (os.Args[1] == "--help" || os.Args[1] == "-h") {
-		fmt.Println("A simple pocker winner finder program.")
+		fmt.Println("A simple poker winner finder program.")
 		fmt.Println("Developed by A. Shein")
 		fmt.Println("Usage: ")
-		fmt.Println(`echo 'QQAAJ\n22333' | ./simple_pocker`)
+		fmt.Println(`echo 'QQAAJ\n22333' | ./simple_poker`)
 		os.Exit(0)
 	}
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Running simple pocker.")
+	fmt.Println("Running simple poker.")
 	fmt.Println("Enter first card set: ")
 	rawHand1, err := reader.ReadString('\n')
 	if err != nil {
@@ -32,7 +32,7 @@ func main() {
 	}
 	rawHand2 = strings.TrimSuffix(rawHand2, "\n")
 
-	winner, err := simplePocker(rawHand1, rawHand2)
+	winner, err := simplePoker(rawHand1, rawHand2)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

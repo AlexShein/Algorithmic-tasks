@@ -136,8 +136,8 @@ func convertHand(hand string) (cardsHand, error) {
 	return cardsHand{}, wrongLengthError(hand)
 }
 
-// simplePocker wrapps convertation logic and findWinner call
-func simplePocker(rawHand1, rawHand2 string) (string, error) {
+// simplePoker wrapps convertation logic and findWinner call
+func simplePoker(rawHand1, rawHand2 string) (string, error) {
 	hand1, err := convertHand(rawHand1)
 	if err != nil {
 		return "", err

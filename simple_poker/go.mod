@@ -1,4 +1,4 @@
-module simple_pocker
+module simple_poker
 
 go 1.14
 
