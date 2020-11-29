@@ -6,16 +6,20 @@ import (
 	"unicode"
 )
 
-type invalidCardError rune
-
-func (card invalidCardError) Error() string {
-	return fmt.Sprintf("Invalid card encountered: %s", card)
+type invalidCardError struct {
+	card rune
 }
 
-type wrongLengthError string
+func (e *invalidCardError) Error() string {
+	return fmt.Sprintf("Invalid card encountered: %s", string(e.card))
+}
 
-func (hand wrongLengthError) Error() string {
-	return fmt.Sprintf("Wrong hand length: %s", hand)
+type wrongLengthError struct {
+	hand string
+}
+
+func (e *wrongLengthError) Error() string {
+	return fmt.Sprintf("Wrong hand length: %s", e.hand)
 }
 
 var cardsScoresMap = map[rune]int{
@@ -128,12 +132,12 @@ func convertHand(hand string) (cardsHand, error) {
 			if card < unicode.MaxASCII && isValidCard(card) {
 				result[i] = card
 			} else {
-				return cardsHand{}, invalidCardError(card)
+				return cardsHand{}, &invalidCardError{card}
 			}
 		}
 		return result, nil
 	}
-	return cardsHand{}, wrongLengthError(hand)
+	return cardsHand{}, &wrongLengthError{hand}
 }
 
 // simplePoker wrapps convertation logic and findWinner call

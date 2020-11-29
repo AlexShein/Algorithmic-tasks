@@ -112,7 +112,7 @@ var simplePokerTestCases = []simplePokerResult{
 			handTwo: "22345",
 		},
 		output: "",
-		err:    wrongLengthError(""),
+		err:    &wrongLengthError{""},
 	},
 	{
 		input: simplePokerInput{
@@ -120,7 +120,7 @@ var simplePokerTestCases = []simplePokerResult{
 			handTwo: "22345",
 		},
 		output: "",
-		err:    invalidCardError('D'),
+		err:    &invalidCardError{'D'},
 	},
 	{
 		input: simplePokerInput{
@@ -128,7 +128,7 @@ var simplePokerTestCases = []simplePokerResult{
 			handTwo: "22345",
 		},
 		output: "",
-		err:    wrongLengthError(""),
+		err:    &wrongLengthError{""},
 	},
 	{
 		input: simplePokerInput{
@@ -136,7 +136,7 @@ var simplePokerTestCases = []simplePokerResult{
 			handTwo: "22345",
 		},
 		output: "",
-		err:    invalidCardError('й'),
+		err:    &invalidCardError{'й'},
 	},
 }
 
