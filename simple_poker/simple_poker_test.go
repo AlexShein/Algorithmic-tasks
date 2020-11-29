@@ -124,7 +124,7 @@ var simplePokerTestCases = []simplePokerResult{
 	},
 	{
 		input: simplePokerInput{
-			handOne: "йQQAAT", // the card set includes unicode character, hence string's length will be larger than 5
+			handOne: "йQQAA", // the card set includes unicode character, hence string's length will be larger than 5
 			handTwo: "22345",
 		},
 		output: "",
