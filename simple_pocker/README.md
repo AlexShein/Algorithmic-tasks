@@ -30,8 +30,5 @@ These steps was tested using Docker version `19.03.13`.
 ## Additional info:
 
 This package contains unit tests (`simple_pocker/simple_pocker_test.go`).
-You may need to install `github.com/stretchr/testify/assert` testing packege prior to running them.
-
-1. `go get`
-2. `go install`
-3. `go test`
+You may need to install `github.com/stretchr/testify/assert` testing package prior to running them.
+Since this project contains `go.mod` file, running `go test` will be install the required package as well as run tests.
