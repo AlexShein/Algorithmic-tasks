@@ -1,7 +1,7 @@
 import { Assert } from "./test";
 
 export function sumProdDiags(matrix: number[][]): number {
-  let dimension = matrix.length;
+  const dimension = matrix.length;
   let products_sum = 0;
 
   matrix.map((_, offset) => {
@@ -23,7 +23,7 @@ export function sumProdDiags(matrix: number[][]): number {
   return products_sum;
 }
 
-let M1 = [
+const M1 = [
   [1, 4, 7, 6, 5],
   [-3, 2, 8, 1, 3],
   [6, 2, 9, 7, -4],
@@ -32,7 +32,7 @@ let M1 = [
 ];
 Assert("Running test with M1", sumProdDiags(M1), 1098);
 
-let M2 = [
+const M2 = [
   [1, 4, 7, 6],
   [-3, 2, 8, 1],
   [6, 2, 9, 7],
@@ -40,7 +40,7 @@ let M2 = [
 ];
 Assert("Running test with M2", sumProdDiags(M2), -11);
 
-let M3 = [
+const M3 = [
   [1, 2, 3, 2, 1],
   [2, 3, 4, 3, 2],
   [3, 4, 5, 4, 3],
