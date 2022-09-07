@@ -8,64 +8,83 @@ function countFivesOrder10(power) {
   return res;
 }
 
-// Returns count of integers that include digit 5 in a range [0 .. value]
-function countFives(value, fivesCount, power, fivesPerPowerOf10) {
+// Returns count of integers that include digit 5 in a range [0 .. rangeEndValue]
+function countFives(rangeEndValue, fivesCount, power, fivesPerPowerOf10) {
+  // This function calls itself recursively until the last power of 10
+  // that doesn't exceed rangeEndValue. It returns updated (reduced) rangeEndValue and fives count
+  // E.g. countFives(131) will effectively wor as countFives(100) + countFives(31)
   const currentPowerOf10 = 10 ** power;
+  // Per each 10, 100, 10^(n) there's always 1, 19, 27, ... 5s
+  // The function is f(n) where n is a power of 10
+  // f(1) = 1; f(n) = 9*f(n-1)+10^(n-1)
   const nextFivesPerPowerOf10 = fivesPerPowerOf10 * 9 + currentPowerOf10;
-  let numberOfFolds = Math.floor(value / currentPowerOf10);
+  let numberOfFolds = Math.floor(rangeEndValue / currentPowerOf10);
 
   if (numberOfFolds > 9) {
-    [value, fivesCount] = countFives(
-      value,
+    // We need to go to larger power of 10 at first.
+    [rangeEndValue, fivesCount] = countFives(
+      rangeEndValue,
       fivesCount,
       power + 1,
       nextFivesPerPowerOf10
     );
-    numberOfFolds = Math.floor(value / currentPowerOf10);
+    numberOfFolds = Math.floor(rangeEndValue / currentPowerOf10);
   }
   if (numberOfFolds == 5) {
+    // Special case, rangeEndValues starting with 5, like 545
     return [
       0,
-      fivesCount + 5 * fivesPerPowerOf10 + value - 5 * currentPowerOf10 + 1,
+      fivesCount +
+        5 * fivesPerPowerOf10 +
+        rangeEndValue -
+        5 * currentPowerOf10 +
+        1,
     ];
   } else if (numberOfFolds > 5) {
+    // In case the rangeEndValue is past 5 * currentPowerOf10, e.g. 60, 601, ...
     return [
-      value - numberOfFolds * currentPowerOf10,
+      rangeEndValue - numberOfFolds * currentPowerOf10,
       fivesCount + (numberOfFolds - 1) * fivesPerPowerOf10 + currentPowerOf10,
     ];
   }
   return [
-    value - numberOfFolds * currentPowerOf10,
+    // Default case when rangeEndValue is below 5 * currentPowerOf10, e.g. 20, 301, ...
+    rangeEndValue - numberOfFolds * currentPowerOf10,
     fivesCount + numberOfFolds * fivesPerPowerOf10,
   ];
 }
 
 // Returns count of integers that don't include digit 5 in a given range
 function giveMeFive(start, end) {
-    console.log("Entering giveMeFive with values: ", start, end);
-    if (start < 0 && end < 0) {
+  if (start < 0 && end < 0) {
+    // Moving range to the positive side
     [start, end] = [-end, -start];
-} else if (start < 0) {
+  }
+  if (start < 0) {
+    // If the range crosses 0, adding fives sum of 2 ranges starting at 0
     return giveMeFive(0, -start) + giveMeFive(0, end);
-}
-if (start != 0) {
+  }
+  if (start != 0) {
+    // If the range doesn't cross 0, subtract fives sum of 2 ranges starting at 0
     return giveMeFive(0, end) - giveMeFive(0, start - 1);
   }
   if (end > 10) {
-      [value, fivesCount] = countFives(end, 0, 1, 1); // start with 10th and there's one five per each 10 except for 50
-      if (value >= 5) {
-          fivesCount += 1;
-        }
-    } else {
-        return end >= 5 ? 1 : 0;
+    // If we've reached this line, we're already solving the task for range [0..end]
+    [rangeEndValue, fivesCount] = countFives(end, 0, 1, 1); // start with 10th and there's one five per each 10 except for 50
+    if (rangeEndValue >= 5) {
+      fivesCount += 1;
     }
-    
-    return fivesCount;
+  } else {
+    // Trivial case, range is less than 10 numbers
+    return end >= 5 ? 1 : 0;
+  }
+
+  return fivesCount;
 }
 
 // Returns count of integers that don't include digit 5 in a given range
 function dontGiveMeFive(start, end) {
-  return Math.abs(end - start) - giveMeFive(start, end) + 1;
+  return Math.abs(end - start) - giveMeFive(start, end) + 1; // Subtracting count of numbers with digit 5
 }
 
 function bfSolution(start, end) {
