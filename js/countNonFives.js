@@ -1,124 +1,71 @@
 test = require("./test");
 
-function countFivesOrder10(orderOf10) {
+function countFivesOrder10(power) {
   let res = 1;
-  for (let i = 1; i < orderOf10; i++) {
+  for (let i = 1; i < power; i++) {
     res = res * 9 + 10 ** i;
   }
   return res;
 }
 
-function countFivesOrder10R(value, fivesCount, orderOf10, fivesPerOrderOf10) {
-  const current10Power = 10 ** orderOf10;
-  const nextFivesPerOrderOf10 = fivesPerOrderOf10 * 9 + current10Power;
-  let numberOfFolds = Math.floor(value / current10Power);
+// Returns count of integers that include digit 5 in a range [0 .. value]
+function countFives(value, fivesCount, power, fivesPerPowerOf10) {
+  const currentPowerOf10 = 10 ** power;
+  const nextFivesPerPowerOf10 = fivesPerPowerOf10 * 9 + currentPowerOf10;
+  let numberOfFolds = Math.floor(value / currentPowerOf10);
 
-//   console.log(
-//     "Enter countFivesOrder10R f, value: ",
-//     value,
-//     "fivesCount: ",
-//     fivesCount,
-//     "orderOf10: ",
-//     orderOf10,
-//     "fivesPerOrderOf10: ",
-//     fivesPerOrderOf10,
-//     "current10Power: ",
-//     current10Power,
-//     "numberOfFolds: ",
-//     numberOfFolds,
-//     "nextFivesPerOrderOf10: ",
-//     nextFivesPerOrderOf10
-//   );
   if (numberOfFolds > 9) {
-    [value, fivesCount] = countFivesOrder10R(
+    [value, fivesCount] = countFives(
       value,
       fivesCount,
-      orderOf10 + 1,
-      nextFivesPerOrderOf10
+      power + 1,
+      nextFivesPerPowerOf10
     );
-    numberOfFolds = Math.floor(value / current10Power);
-    // console.log(
-    //   "Updated values after recursive call, ",
-    //   "value: ",
-    //   value,
-    //   "fivesCount: ",
-    //   fivesCount,
-    //   "numberOfFolds: ",
-    //   numberOfFolds
-    // );
+    numberOfFolds = Math.floor(value / currentPowerOf10);
   }
   if (numberOfFolds == 5) {
-    // console.log(
-    // "If == 5 clause starts, ",
-    // "New value: ",
-    // 0,
-    // "Current fivesCount: ",
-    // fivesCount,
-    // "New fivesCount: ",
-    // fivesCount + 5 * fivesPerOrderOf10 + value - 5 * current10Power + 1
-    // )
     return [
       0,
-      fivesCount + 5 * fivesPerOrderOf10 + value - 5 * current10Power + 1,
+      fivesCount + 5 * fivesPerPowerOf10 + value - 5 * currentPowerOf10 + 1,
     ];
   } else if (numberOfFolds > 5) {
-    // console.log(
-    //   "If > 5 clause starts, ",
-    //   "New value: ",
-    //   value - numberOfFolds * current10Power,
-    //   "Current fivesCount: ",
-    //   fivesCount,
-    //   "New fivesCount: ",
-    //   fivesCount + (numberOfFolds - 1) * fivesPerOrderOf10 + current10Power
-    // );
     return [
-      value - numberOfFolds * current10Power,
-      fivesCount + (numberOfFolds - 1) * fivesPerOrderOf10 + current10Power,
-    ];
-  } else {
-    // console.log(
-    //   "If clause starts, ",
-    //   "New value: ",
-    //   value - numberOfFolds * current10Power,
-    //   "Current fivesCount: ",
-    //   fivesCount,
-    //   "New fivesCount: ",
-    //   fivesCount + numberOfFolds * fivesPerOrderOf10
-    // );
-    return [
-      value - numberOfFolds * current10Power,
-      fivesCount + numberOfFolds * fivesPerOrderOf10,
+      value - numberOfFolds * currentPowerOf10,
+      fivesCount + (numberOfFolds - 1) * fivesPerPowerOf10 + currentPowerOf10,
     ];
   }
-  console.log("Default return", value, fivesCount);
-  return [0, fivesCount];
+  return [
+    value - numberOfFolds * currentPowerOf10,
+    fivesCount + numberOfFolds * fivesPerPowerOf10,
+  ];
 }
 
 // Returns count of integers that don't include digit 5 in a given range
-function GiveMeFive(start, end) {
-  console.log("Entering GiveMeFive with values: ", start, end);
-  if (start < 0 && end < 0) {
+function giveMeFive(start, end) {
+    console.log("Entering giveMeFive with values: ", start, end);
+    if (start < 0 && end < 0) {
     [start, end] = [-end, -start];
-  } else if (start < 0) {
-    return GiveMeFive(0, -start) + GiveMeFive(0, end);
-  }
-  if (start != 0) {
-    return GiveMeFive(0, end) - GiveMeFive(0, start - 1);
+} else if (start < 0) {
+    return giveMeFive(0, -start) + giveMeFive(0, end);
+}
+if (start != 0) {
+    return giveMeFive(0, end) - giveMeFive(0, start - 1);
   }
   if (end > 10) {
-    [value, fivesCount] = countFivesOrder10R(end, 0, 1, 1);
-    if (value >= 5) {
-      fivesCount += 1;
+      [value, fivesCount] = countFives(end, 0, 1, 1); // start with 10th and there's one five per each 10 except for 50
+      if (value >= 5) {
+          fivesCount += 1;
+        }
+    } else {
+        return end >= 5 ? 1 : 0;
     }
-  } else {
-    return end >= 5 ? 1 : 0;
-  }
-
-  return fivesCount;
+    
+    return fivesCount;
 }
 
+// Returns count of integers that don't include digit 5 in a given range
 function dontGiveMeFive(start, end) {
-  return Math.abs(end - start) - GiveMeFive(start, end) + 1;
+  return Math.abs(end - start) - giveMeFive(start, end) + 1;
 }
 
 function bfSolution(start, end) {
@@ -135,72 +82,58 @@ console.log("10", countFivesOrder10(1), bfSolution(0, 10));
 console.log("100", countFivesOrder10(2), bfSolution(0, 100));
 console.log("1000", countFivesOrder10(3), bfSolution(0, 1000));
 console.log("10000", countFivesOrder10(4), bfSolution(0, 10000));
-// console.log('2000', dontGiveMeFive(1, 2000))
-// console.log('3000', dontGiveMeFive(1, 3000))
-// console.log('4000', dontGiveMeFive(1, 4000))
-// console.log('5000', dontGiveMeFive(1, 5000))
-// console.log('10000', dontGiveMeFive(1, 10000))
-
-// console.log('-50 50', dontGiveMeFive(-50, 50))
-// console.log('-55 53', dontGiveMeFive(-55, 53))
-// console.log('-500 500', dontGiveMeFive(-500, 500))
-// console.log('Count orders 967', 967 >> 1, 967 >> 2, 967 >> 3)
-
-// console.log("5s in order (2) 100", countFivesOrder10(2));
-// console.log("5s in order (3) 1000", countFivesOrder10(3));
-// console.log('5s in order (4) 10000', countFivesOrder10(4))
 
 // Tests
 
-test.Assert("Toy example fives 545", GiveMeFive(0, 545), bfSolution(0, 545));
-test.Assert("Toy example fives 7", GiveMeFive(0, 7), 1);
-test.Assert("Toy example fives 16", GiveMeFive(0, 16), 2);
-test.Assert("Toy example fives 15", GiveMeFive(0, 15), bfSolution(0, 15));
-test.Assert("Toy example fives 57", GiveMeFive(0, 57), bfSolution(0, 57));
+test.Assert("Toy example fives 545", giveMeFive(0, 545), bfSolution(0, 545));
+test.Assert("Toy example fives 7", giveMeFive(0, 7), 1);
+test.Assert("Toy example fives 16", giveMeFive(0, 16), 2);
+test.Assert("Toy example fives 15", giveMeFive(0, 15), bfSolution(0, 15));
+test.Assert("Toy example fives 57", giveMeFive(0, 57), bfSolution(0, 57));
 test.Assert(
   "Toy example fives 7 - 118",
-  GiveMeFive(7, 118),
+  giveMeFive(7, 118),
   bfSolution(7, 118)
 );
-test.Assert("small numbers only fives", GiveMeFive(-17, 9), 3);
+test.Assert("small numbers only fives", giveMeFive(-17, 9), 3);
 test.Assert(
   "Larger example fives 0 - 4304",
-  GiveMeFive(0, 4304),
+  giveMeFive(0, 4304),
   bfSolution(0, 4304)
 );
 test.Assert(
   "Larger example fives 0 - 400",
-  GiveMeFive(0, 400),
+  giveMeFive(0, 400),
   bfSolution(0, 400)
 );
 test.Assert(
   "Larger example fives 0 - 500",
-  GiveMeFive(0, 500),
+  giveMeFive(0, 500),
   bfSolution(0, 500)
 );
 test.Assert(
   "Larger example fives 0 - 600",
-  GiveMeFive(0, 600),
+  giveMeFive(0, 600),
   bfSolution(0, 600)
 );
 test.Assert(
   "Larger example fives 0 - 984",
-  GiveMeFive(0, 984),
+  giveMeFive(0, 984),
   bfSolution(0, 984)
 );
 test.Assert(
   "Larger example fives 984 - 4304",
-  GiveMeFive(984, 4304),
+  giveMeFive(984, 4304),
   bfSolution(984, 4304)
 );
 test.Assert(
   "Larger example fives 0 - 257",
-  GiveMeFive(0, 257),
+  giveMeFive(0, 257),
   bfSolution(0, 257)
 );
 test.Assert(
   "Larger example fives -4045 - 2575",
-  GiveMeFive(-4045, 2575),
+  giveMeFive(-4045, 2575),
   bfSolution(-4045, 2575)
 );
 
