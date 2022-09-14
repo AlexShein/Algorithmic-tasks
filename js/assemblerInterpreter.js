@@ -1,12 +1,14 @@
 test = require("./test");
 
+// https://www.codewars.com/kata/58e61f3d8ff24f774400002c/javascript
 function assemblerInterpreter(rawProgram) {
-  const labels = {};
-  const reg = {};
+  const labels = {},
+    reg = {},
+    execStack = [0];
 
-  let [currInd, cmpRes] = [0, 0];
-  let execStack = [0];
-  let outBuff = "";
+  let currInd = 0,
+    cmpRes = 0,
+    outBuff = "";
 
   const getVal = (x) => (isNaN(x) ? reg[x] : +x);
 
@@ -90,11 +92,12 @@ function assemblerInterpreter(rawProgram) {
     },
   };
 
-  // Execution of program starts here
-
-  function lineParser(line, lineNumber) {
-    let [isString, isComment, isArgs] = [false, false, false];
-    let [op, argBuff] = ["", ""];
+  function lineParser(line, lineNumber) { // Using finite automata approach
+    let isString = false,
+      isComment = false,
+      isArgs = false,
+      op = "",
+      argBuff = "";
     const args = [];
 
     for (let i = 0; i < line.length; i++) {
@@ -134,13 +137,14 @@ function assemblerInterpreter(rawProgram) {
       if (isComment) break;
     }
     if (argBuff !== "") args.push(argBuff);
-
     return { op: op, args: args };
   }
+
   const program = rawProgram.split("\n").map(lineParser);
 
   while (true) {
-    if (execStack[currInd] >= program.length) return -1;
+    // Execution of program starts here
+    if (execStack[currInd] >= program.length) return -1; // No "end" encountered
 
     const { op, args } = program[execStack[currInd]];
     switch (op) {
