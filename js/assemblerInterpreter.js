@@ -1,7 +1,6 @@
 test = require("./test");
 
 function assemblerInterpreter(rawProgram) {
-  const program = rawProgram.split("\n");
   const labels = {};
   const reg = {};
 
@@ -82,16 +81,8 @@ function assemblerInterpreter(rawProgram) {
     },
     msg: (...args) => {
       args.map((arg) => {
-        // console.log("### Msg", "\narg = ", arg);
-        if (arg[0] === "'") outBuff += arg.replaceAll("'", "");
+        if (arg[0] === "'") outBuff += arg.slice(1, -1);
         else {
-          // console.log(
-          //   "#### Str",
-          //   "\narg = ", arg,
-          //   "\noutBuff + getVal(arg) = ",
-          //   // String.raw(outBuff + getVal(arg))
-          //   `"${outBuff + getVal(arg)}"`
-          // );
           outBuff += getVal(arg);
         }
       });
@@ -101,78 +92,57 @@ function assemblerInterpreter(rawProgram) {
 
   // Execution of program starts here
 
-  // # TODO (Alexander Shein) Pre-process to remove labels and comments
-  program.map((line, i) => {
-    const labelEnd = line.search(":");
-    const quoteStart = line.search("'");
-    if (labelEnd != -1 && (quoteStart == -1 || labelEnd < quoteStart)) {
-      labels[line.slice(0, labelEnd).trim()] = i;
-      program[i] = line.slice(labelEnd + 1, line.length);
+  function lineParser(line, lineNumber) {
+    let [isString, isComment, isArgs] = [false, false, false];
+    let [op, argBuff] = ["", ""];
+    const args = [];
+
+    for (let i = 0; i < line.length; i++) {
+      const currChar = line[i];
+      switch (currChar) {
+        case "'":
+          isString = !isString;
+          argBuff += currChar;
+          break;
+        case ":":
+          if (!isString) {
+            labels[op] = lineNumber;
+            op = "";
+          } else argBuff += currChar;
+          break;
+        case ";":
+          if (!isString) {
+            isComment = true;
+          }
+          break;
+        case " ":
+          if (isString) argBuff += currChar;
+          else if (!isArgs && op !== "") isArgs = true;
+          break;
+        case "\t":
+          break;
+        case ",":
+          if (!isString && argBuff !== "") {
+            args.push(argBuff);
+            argBuff = "";
+          } else if (isString) argBuff += currChar;
+          break;
+        default:
+          if (!isArgs) op += currChar;
+          else argBuff += currChar;
+      }
+      if (isComment) break;
     }
-  });
+    if (argBuff !== "") args.push(argBuff);
 
-  console.log("Preparation ended\nlabels = ", labels);
+    return { op: op, args: args };
+  }
+  const program = rawProgram.split("\n").map(lineParser);
 
-  let counter = -1;
   while (true) {
-    // Debug check
-    // if (execStack[currInd] >= program.length || counter > 50) break;
-    // Debug outputs
-    counter += 1;
-    console.log(
-      "# Runner loop\ncounter = ",
-      counter,
-      "\nexecStack = ",
-      execStack,
-      "\ncurrInd = ",
-      currInd,
-      "\nreg = ",
-      reg,
-      "\noutBuff = ",
-      `"${outBuff}"`
-    );
+    if (execStack[currInd] >= program.length) return -1;
 
-    let line = program[execStack[currInd]].trim();
-    // Comments processing
-    const commentStart = line.search(";");
-
-    console.log(
-      "## Pre-Operation",
-      "\nline = ",
-      line,
-      "\ncommentStart = ",
-      commentStart,
-      "\nprogram[execStack[currInd]] = ",
-      program[execStack[currInd]]
-    );
-
-    if (commentStart == 0) {
-      execStack[currInd] += 1;
-      continue;
-    } else if (commentStart != -1) line = line.slice(0, commentStart).trim();
-    if (line === "") {
-      execStack[currInd] += 1;
-      continue;
-    }
-    // Get command and args
-    const opEnd = line.search(" ") !== -1 ? line.search(" ") : line.length;
-    const op = line.slice(0, opEnd);
-    const [...args] = line
-      .slice(opEnd, line.length)
-      .split(",")
-      .map((x) => x.trim())
-      .filter((x) => x !== "");
-    // Execute operation
-    console.log(
-      "## Operation\nop = ",
-      op,
-      "\nargs = ",
-      args,
-      "\nopEnd = ",
-      opEnd,
-      "\nline = ",
-      line
-    );
+    const { op, args } = program[execStack[currInd]];
     switch (op) {
       case "end":
         return outBuff || -1;
@@ -184,7 +154,6 @@ function assemblerInterpreter(rawProgram) {
         break;
     }
   }
-  // return outBuff || -1;
 }
 
 const program = `
@@ -275,3 +244,43 @@ mod_func:
     ret`;
 
 test.Assert("Mod", assemblerInterpreter(program_mod), "mod(11, 3) = 2");
+
+var program_power = `mov   a, 2            ; value1
+mov   b, 10           ; value2
+mov   c, a            ; temp1
+mov   d, b            ; temp2
+call  proc_func
+call  print
+end
+
+proc_func:
+    cmp   d, 1
+    je    continue
+    mul   c, a
+    dec   d
+    call  proc_func
+
+continue:
+    ret
+
+print:
+    msg a, '^', b, ' = ', c
+    ret`;
+
+test.Assert("2^10 = 1024", assemblerInterpreter(program_power), "2^10 = 1024");
+
+var program_fail = `call  func1
+call  print
+end
+
+func1:
+    call  func2
+    ret
+
+func2:
+    ret
+
+print:
+    msg 'This program should return -1'`;
+
+test.Assert("-1", assemblerInterpreter(program_fail), -1);

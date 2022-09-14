@@ -13,6 +13,6 @@ export function Assert(description: string, got: any, expected: any): Boolean {
   } else if (got !== expected) {
     throw `Error running ${description}. Expected ${expected}. Got ${got}`;
   }
-  console.log(`Passed: ${description}`);
+  console.log(`Passed: ${description}\n`);
   return true;
 }
