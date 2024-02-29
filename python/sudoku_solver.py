@@ -1,6 +1,9 @@
-from functools import reduce
 from typing import Iterator
 import pprint as pp
+
+
+ALLOWED_VALUES_SET = set(range(1, 10))
+SOLVED_SUDOKU_SUM = 405
 
 
 class InvalidPuzzleError(Exception):
@@ -8,31 +11,28 @@ class InvalidPuzzleError(Exception):
 
 
 def is_solved(puzzle: list[list[int]]) -> bool:
-    return 0 not in reduce(
-        lambda accumulator, value: accumulator | value, map(set, puzzle), set()
-    )
+    return sum(map(sum, puzzle)) == SOLVED_SUDOKU_SUM
 
 
-def get_box_set(puzzle: list[list[int]], row_index: int, col_index: int) -> set[int]:
+def get_box(puzzle: list[list[int]], row_index: int, col_index: int) -> set[int]:
     row_min = (row_index // 3) * 3
     col_min = (col_index // 3) * 3
-    return {
+    return (
         value
         for row in puzzle[row_min : row_min + 3]
         for value in row[col_min : col_min + 3]
-    }
+    )
 
 
 def get_possible_cell_values(
     puzzle: list[list[int]], row_index: int, col_index: int
 ) -> Iterator[int]:
-    for value in range(1, 10):
-        if (
-            (value not in set(puzzle[row_index]))
-            and (value not in {row[col_index] for row in puzzle})
-            and (value not in get_box_set(puzzle, row_index, col_index))
-        ):
-            yield value
+    for value in ALLOWED_VALUES_SET - {
+        *puzzle[row_index],
+        *(row[col_index] for row in puzzle),
+        *get_box(puzzle, row_index, col_index),
+    }:
+        yield value
 
 
 def solve(puzzle: list[list[int]], start_row: int) -> list[list[list[int]]]:
