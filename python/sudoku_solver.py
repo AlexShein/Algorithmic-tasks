@@ -1,6 +1,5 @@
 from functools import reduce
 from typing import Iterator
-from copy import deepcopy
 import pprint as pp
 
 
@@ -29,34 +28,23 @@ def get_possible_cell_values(
 ) -> Iterator[int]:
     for value in range(1, 10):
         if (
-            (value not in puzzle[row_index])
+            (value not in set(puzzle[row_index]))
             and (value not in {row[col_index] for row in puzzle})
             and (value not in get_box_set(puzzle, row_index, col_index))
         ):
             yield value
 
 
-max_level = 0
-
-
-def solve(puzzle: list[list[int]], level: int) -> list[list[list[int]]]:
-    global max_level
-    # print(f"solve() called, {level=}, {max_level=}")
-    if max_level < level:
-        max_level = level
-
-    # pp.pprint(puzzle)
+def solve(puzzle: list[list[int]], start_row: int) -> list[list[list[int]]]:
     solutions = []
-    for row_index in range(9):
+    for row_index in range(start_row, 9):
         for col_index in range(9):
             if puzzle[row_index][col_index] == 0:
-                # values = list(get_possible_cell_values(puzzle, row_index, col_index))
-                # print(f"We have {len(values)=}, {values=}")
                 for new_value in get_possible_cell_values(puzzle, row_index, col_index):
-                    # _puzzle = deepcopy(puzzle)
-                    _puzzle = tuple(
+                    # We copy the puzzle and set the new value to [row_index, col_index]
+                    _puzzle = list(
                         map(
-                            lambda _row_index_and_row: tuple(
+                            lambda _row_index_and_row: list(
                                 value
                                 if (_row_index_and_row[0], _col_index)
                                 != (row_index, col_index)
@@ -68,17 +56,13 @@ def solve(puzzle: list[list[int]], level: int) -> list[list[list[int]]]:
                             enumerate(puzzle),
                         )
                     )
-                    # _puzzle[row_index][col_index] = new_value
-                    # print(f"Calling solve() with {row_index=}, {col_index=}, {new_value=}")
                     if is_solved(_puzzle):
                         solutions.append(_puzzle)
                     else:
-                        for solution in solve(_puzzle, level + 1):
-                            solutions.append(solution)
-                else:
-                    return solutions
-
-    return solutions
+                        solutions.extend(solve(_puzzle, row_index))
+                    if len(solutions) > 1:
+                        raise InvalidPuzzleError("Puzzle has more than 1 solution")
+                return solutions
 
 
 def sudoku_solver(puzzle: list[list[int]]) -> list[list[int]]:
@@ -93,12 +77,10 @@ def sudoku_solver(puzzle: list[list[int]]) -> list[list[int]]:
                 raise InvalidPuzzleError(
                     "Cell value out of range 1~9 and 0 for empty cells"
                 )
-    solutions = solve(tuple(map(tuple, puzzle)), 1)
+    solutions = solve(puzzle, 0)
     if not solutions:
         raise InvalidPuzzleError("Unsolvable puzzle")
-    elif len(solutions) > 1:
-        raise InvalidPuzzleError("Puzzle has more than 1 solution")
-    return list(map(list, solutions[0]))
+    return solutions[0]
 
 
 if __name__ == "__main__":
@@ -125,13 +107,6 @@ if __name__ == "__main__":
         [6, 2, 4, 7, 5, 9, 3, 8, 1],
         [1, 7, 3, 8, 6, 2, 5, 9, 4],
     ]
-
-    zeros = 0
-    for row in puzzle:
-        for i in row:
-            if i == 0:
-                zeros += 1
-    print(f"{zeros=}")
 
     solver_output = sudoku_solver(puzzle)
     print("** Solution found! **")
