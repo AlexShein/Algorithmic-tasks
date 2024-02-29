@@ -14,15 +14,15 @@ def is_solved(puzzle: list[int]) -> bool:
     return sum(puzzle) == SOLVED_SUDOKU_SUM
 
 
-def get_box(puzzle: list[list[int]], row_index: int, col_index: int) -> set[int]:
+def get_box(puzzle: list[list[int]], row_index: int, col_index: int) -> list[int]:
     row_min = (row_index // 3) * 3
     col_min = (col_index // 3) * 3
 
-    return (
+    return [
         *puzzle[row_min * 9 + col_min : row_min * 9 + col_min + 3],
         *puzzle[(row_min + 1) * 9 + col_min : (row_min + 1) * 9 + col_min + 3],
         *puzzle[(row_min + 2) * 9 + col_min : (row_min + 2) * 9 + col_min + 3],
-    )
+    ]
 
 
 def get_possible_cell_values(
@@ -43,17 +43,15 @@ def solve(puzzle: list[int], start_row: int) -> list[list[int]]:
             if puzzle[row_index * 9 + col_index] == 0:
                 # TODO (Alexander Shein) Find the most constrained cell
                 for new_value in get_possible_cell_values(puzzle, row_index, col_index):
-                    # We copy the puzzle and set the new value to [row_index, col_index]
-                    _puzzle = list(
-                        value if index != row_index * 9 + col_index else new_value
-                        for index, value in enumerate(puzzle)
-                    )
-                    if is_solved(_puzzle):
-                        solutions.append(_puzzle)
+                    # We set the new value to [row_index, col_index] and reset it back after testing
+                    puzzle[row_index * 9 + col_index] = new_value
+                    if is_solved(puzzle):
+                        solutions.append([*puzzle])
                     else:
-                        solutions.extend(solve(_puzzle, row_index))
+                        solutions.extend(solve(puzzle, row_index))
                     if len(solutions) > 1:
                         raise InvalidPuzzleError("Puzzle has more than 1 solution")
+                    puzzle[row_index * 9 + col_index] = 0
                 return solutions
 
 
