@@ -13,8 +13,13 @@ class InvalidPuzzleError(Exception):
 
 
 class SudokuSolver:
-    def __init__(self, puzzle: list[int]):
-        self.puzzle = puzzle
+    def __init__(self, puzzle: list[list[int]]):
+        # It should raise an error in cases of:
+        # invalid grid (not 9x9, cell with values not in the range 1~9);
+        # multiple solutions for the same puzzle or the puzzle is unsolvable
+        if len(puzzle) != 9 or any(len(row) != 9 for row in puzzle):
+            raise InvalidPuzzleError("Invalid puzzle shape")
+        self.puzzle = list(chain(*puzzle))
 
         self.row_masks = [DEFAULT_BITMASK_VALUE for i in range(9)]
         self.col_masks = [*self.row_masks]
@@ -24,11 +29,20 @@ class SudokuSolver:
 
         for row_index in range(9):
             for col_index in range(9):
-                value = puzzle[row_index * 9 + col_index]
+                value = self.puzzle[row_index * 9 + col_index]
                 box_index = (row_index // 3) * 3 + col_index // 3
                 if value == 0:
                     self.todo.append((row_index, col_index, box_index))
-                else:
+                elif 1 <= value <= 9:
+                    # If the corresponding bit is alreay zero, it means the <value> has already been
+                    # encountered for this row, col or box
+                    if (
+                        not (self.row_masks[row_index] & 1 << value - 1)
+                        or not (self.col_masks[col_index] & 1 << value - 1)
+                        or not (self.box_masks[box_index] & 1 << value - 1)
+                    ):
+                        raise InvalidPuzzleError("Invalid grid")
+
                     # We are setting bit number <value> to zero meaning we can't use that number anymore
                     self.row_masks[row_index] = self.row_masks[row_index] ^ (
                         1 << value - 1
@@ -39,6 +53,12 @@ class SudokuSolver:
                     self.box_masks[box_index] = self.box_masks[box_index] ^ (
                         1 << value - 1
                     )
+                else:
+                    raise InvalidPuzzleError(
+                        "Cell value out of range 1~9 and 0 for empty cells"
+                    )
+
+        self.todo_len = len(self.todo)
 
     def get_possible_cell_values(self, row_index: int, col_index: int) -> Iterator[int]:
         box_index = (row_index // 3) * 3 + col_index // 3
@@ -51,7 +71,10 @@ class SudokuSolver:
             if allowed_row_values_mask & 1 << value:
                 yield value + 1
 
-    def solve(self, todo_index: int, zeros_count: int) -> list[list[int]]:
+    def _solve(
+        self,
+        todo_index: int,
+    ) -> list[list[int]]:
         solutions = []
 
         row_index, col_index, box_index = self.todo[todo_index]
@@ -63,10 +86,12 @@ class SudokuSolver:
             self.col_masks[col_index] ^= 1 << new_value - 1
             self.box_masks[box_index] ^= 1 << new_value - 1
 
-            if zeros_count == 1:
+            if todo_index == self.todo_len - 1:
                 # The sudoku is solved
                 solutions.append([*self.puzzle])
-            elif new_solutions := self.solve(todo_index + 1, zeros_count - 1):
+            elif new_solutions := self._solve(
+                todo_index + 1,
+            ):
                 solutions.extend(new_solutions)
             if len(solutions) > 1:
                 raise InvalidPuzzleError("Puzzle has more than 1 solution")
@@ -78,60 +103,16 @@ class SudokuSolver:
             self.puzzle[row_index * 9 + col_index] = 0
         return solutions
 
-    # def alternative_solve(self, start_row: int, zeros_count: int) -> list[list[int]]:
-    #     solutions = []
-    #     for row_index in range(start_row, 9):
-    #         for col_index in range(9):
-    #             box_index = (row_index // 3) * 3 + col_index // 3
-    #             # TODO (Alexander Shein) Use cell coordinates from queue
-    #             if self.puzzle[row_index * 9 + col_index] == 0:
-    #                 for new_value in self.get_possible_cell_values(
-    #                     row_index, col_index
-    #                 ):
-    #                     # We set the new value to [row_index, col_index] and reset it back after testing
-    #                     self.puzzle[row_index * 9 + col_index] = new_value
-    #                     # Updating masks with the new value
-    #                     self.row_masks[row_index] ^= 1 << new_value - 1
-    #                     self.col_masks[col_index] ^= 1 << new_value - 1
-    #                     self.box_masks[box_index] ^= 1 << new_value - 1
-
-    #                     if zeros_count == 1:
-    #                         # The sudoku is solved
-    #                         solutions.append([*self.puzzle])
-    #                     elif new_solutions := self.solve(row_index, zeros_count - 1):
-    #                         solutions.extend(new_solutions)
-    #                     if len(solutions) > 1:
-    #                         raise InvalidPuzzleError("Puzzle has more than 1 solution")
-    #                     # Reseting masks
-    #                     self.row_masks[row_index] |= 1 << new_value - 1
-    #                     self.col_masks[col_index] |= 1 << new_value - 1
-    #                     self.box_masks[box_index] |= 1 << new_value - 1
-
-    #                     self.puzzle[row_index * 9 + col_index] = 0
-    #                 return solutions
+    def solve(self):
+        solutions = self._solve(0)
+        if not solutions:
+            raise InvalidPuzzleError("Unsolvable puzzle")
+        return [solutions[0][offset : offset + 9] for offset in range(0, 81, 9)]
 
 
 def sudoku_solver(puzzle: list[list[int]]) -> list[list[int]]:
-    # It should raise an error in cases of:
-    # invalid grid (not 9x9, cell with values not in the range 1~9);
-    # multiple solutions for the same puzzle or the puzzle is unsolvable
-    if len(puzzle) != 9 or any(len(row) != 9 for row in puzzle):
-        raise InvalidPuzzleError("Invalid puzzle shape")
-    _puzzle = list(chain(*puzzle))
-    zeros_count = 0
-    for item in _puzzle:
-        if item == 0:
-            zeros_count += 1
-        if not 0 <= item <= 9:
-            raise InvalidPuzzleError(
-                "Cell value out of range 1~9 and 0 for empty cells"
-            )
-
-    solver = SudokuSolver(_puzzle)
-    solutions = solver.solve(0, zeros_count)
-    if not solutions:
-        raise InvalidPuzzleError("Unsolvable puzzle")
-    return [solutions[0][offset : offset + 9] for offset in range(0, 81, 9)]
+    solver = SudokuSolver(puzzle)
+    return solver.solve()
 
 
 if __name__ == "__main__":
@@ -166,3 +147,56 @@ if __name__ == "__main__":
     print("** Solution found! **")
     pp.pprint(solver_output)
     assert solver_output == solution, "Failed to solve sample sudoku"
+
+#     invalid_grid = [
+#         [1, 1, 3, 4, 5, 6, 7, 8, 9],
+#         [4, 0, 6, 7, 8, 9, 1, 2, 3],
+#         [7, 8, 9, 1, 2, 3, 4, 5, 6],
+#         [2, 3, 4, 5, 6, 7, 8, 9],
+#         [5, 6, 7, 8, 9, 1, 2, 3, 4],
+#         [8, 9, 1, 2, 3, 4, 5, 6, 7],
+#         [3, 4, 5, 6, 7, 8, 9, 1, 2],
+#         [6, 7, 8, 9, 1, 2, 3, 4, 5],
+#         [9, 1, 2, 3, 4, 5, 6, 7, 8],
+#     ]
+
+#     invalid_grid = [
+#         [1, 1, 3, 4, 5, 6, 7, 8, 9],
+#         [4, 0, 6, 7, 8, 9, 1, 2, 3],
+#         [7, 8, 9, 1, 2, 3, 4, 5, 6],
+#         [2, 3, 4, 5, 6, 7, 8, 9, 1],
+#         [5, 6, 7, 8, 9, 1, 2, 3, 4],
+#         [8, 9, 1, 2, 3, 4, 5, 6, 7],
+#         [3, 4, 5, 6, 7, 8, 9, 1, 2],
+#         [6, 7, 8, 9, 1, 2, 3, 4, 5],
+#         [9, 1, 2, 3, 4, 5, 6, 7, 8],
+#     ]
+
+#     solver_output = sudoku_solver(invalid_grid)
+#     print("some_solution")
+#     pp.pprint(solver_output)
+
+
+# [
+#     [1, 2, 3, 4, 5, 6, 7, 8, 9],
+#     [1, 0, 6, 7, 8, 9, 1, 2, 3],
+#     [7, 8, 9, 1, 2, 3, 4, 5, 6],
+#     [2, 3, 4, 5, 6, 7, 8, 9, 1],
+#     [5, 6, 7, 8, 9, 1, 2, 3, 4],
+#     [8, 9, 1, 2, 3, 4, 5, 6, 7],
+#     [3, 4, 5, 6, 7, 8, 9, 1, 2],
+#     [6, 7, 8, 9, 1, 2, 3, 4, 5],
+#     [9, 1, 2, 3, 4, 5, 6, 7, 8],
+# ]
+
+# [
+#     [1, 2, 3, 4, 5, 6, 7, 8, 9],
+#     [4, 0, 6, 7, 8, 9, 1, 2, 3],
+#     [7, 8, 1, 1, 2, 3, 4, 5, 6],
+#     [2, 3, 4, 5, 6, 7, 8, 9, 1],
+#     [5, 6, 7, 8, 9, 1, 2, 3, 4],
+#     [8, 9, 1, 2, 3, 4, 5, 6, 7],
+#     [3, 4, 5, 6, 7, 8, 9, 1, 2],
+#     [6, 7, 8, 9, 1, 2, 3, 4, 5],
+#     [9, 1, 2, 3, 4, 5, 6, 7, 8],
+# ]
