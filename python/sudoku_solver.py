@@ -1,6 +1,6 @@
 from typing import Iterator
 import pprint as pp
-
+from itertools import chain
 
 ALLOWED_VALUES_SET = set(range(1, 10))
 SOLVED_SUDOKU_SUM = 405
@@ -10,17 +10,18 @@ class InvalidPuzzleError(Exception):
     pass
 
 
-def is_solved(puzzle: list[list[int]]) -> bool:
-    return sum(map(sum, puzzle)) == SOLVED_SUDOKU_SUM
+def is_solved(puzzle: list[int]) -> bool:
+    return sum(puzzle) == SOLVED_SUDOKU_SUM
 
 
 def get_box(puzzle: list[list[int]], row_index: int, col_index: int) -> set[int]:
     row_min = (row_index // 3) * 3
     col_min = (col_index // 3) * 3
+
     return (
-        value
-        for row in puzzle[row_min : row_min + 3]
-        for value in row[col_min : col_min + 3]
+        *puzzle[row_min * 9 + col_min : row_min * 9 + col_min + 3],
+        *puzzle[(row_min + 1) * 9 + col_min : (row_min + 1) * 9 + col_min + 3],
+        *puzzle[(row_min + 2) * 9 + col_min : (row_min + 2) * 9 + col_min + 3],
     )
 
 
@@ -28,33 +29,24 @@ def get_possible_cell_values(
     puzzle: list[list[int]], row_index: int, col_index: int
 ) -> Iterator[int]:
     for value in ALLOWED_VALUES_SET - {
-        *puzzle[row_index],
-        *(row[col_index] for row in puzzle),
+        *puzzle[row_index * 9 : (row_index + 1) * 9],
+        *(puzzle[_row_index * 9 + col_index] for _row_index in range(9)),
         *get_box(puzzle, row_index, col_index),
     }:
         yield value
 
 
-def solve(puzzle: list[list[int]], start_row: int) -> list[list[list[int]]]:
+def solve(puzzle: list[int], start_row: int) -> list[list[int]]:
     solutions = []
     for row_index in range(start_row, 9):
         for col_index in range(9):
-            if puzzle[row_index][col_index] == 0:
+            if puzzle[row_index * 9 + col_index] == 0:
+                # TODO (Alexander Shein) Find the most constrained cell
                 for new_value in get_possible_cell_values(puzzle, row_index, col_index):
                     # We copy the puzzle and set the new value to [row_index, col_index]
                     _puzzle = list(
-                        map(
-                            lambda _row_index_and_row: list(
-                                value
-                                if (_row_index_and_row[0], _col_index)
-                                != (row_index, col_index)
-                                else new_value
-                                for _col_index, value in enumerate(
-                                    _row_index_and_row[1]
-                                )
-                            ),
-                            enumerate(puzzle),
-                        )
+                        value if index != row_index * 9 + col_index else new_value
+                        for index, value in enumerate(puzzle)
                     )
                     if is_solved(_puzzle):
                         solutions.append(_puzzle)
@@ -71,16 +63,17 @@ def sudoku_solver(puzzle: list[list[int]]) -> list[list[int]]:
     # multiple solutions for the same puzzle or the puzzle is unsolvable
     if len(puzzle) != 9 or any(len(row) != 9 for row in puzzle):
         raise InvalidPuzzleError("Invalid puzzle shape")
-    for row in puzzle:
-        for item in row:
-            if not 0 <= item <= 9:
-                raise InvalidPuzzleError(
-                    "Cell value out of range 1~9 and 0 for empty cells"
-                )
-    solutions = solve(puzzle, 0)
+    _puzzle = list(chain(*puzzle))
+    for item in _puzzle:
+        if not 0 <= item <= 9:
+            raise InvalidPuzzleError(
+                "Cell value out of range 1~9 and 0 for empty cells"
+            )
+
+    solutions = solve(_puzzle, 0)
     if not solutions:
         raise InvalidPuzzleError("Unsolvable puzzle")
-    return solutions[0]
+    return [solutions[0][offset : offset + 9] for offset in range(0, 81, 9)]
 
 
 if __name__ == "__main__":
