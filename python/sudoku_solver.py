@@ -3,15 +3,10 @@ import pprint as pp
 from itertools import chain
 
 ALLOWED_VALUES_SET = set(range(1, 10))
-SOLVED_SUDOKU_SUM = 405
 
 
 class InvalidPuzzleError(Exception):
     pass
-
-
-def is_solved(puzzle: list[int]) -> bool:
-    return sum(puzzle) == SOLVED_SUDOKU_SUM
 
 
 def get_box(puzzle: list[list[int]], row_index: int, col_index: int) -> list[int]:
@@ -26,7 +21,7 @@ def get_box(puzzle: list[list[int]], row_index: int, col_index: int) -> list[int
 
 
 def get_possible_cell_values(
-    puzzle: list[list[int]], row_index: int, col_index: int
+    puzzle: list[int], row_index: int, col_index: int
 ) -> Iterator[int]:
     for value in ALLOWED_VALUES_SET - {
         *puzzle[row_index * 9 : (row_index + 1) * 9],
@@ -36,19 +31,18 @@ def get_possible_cell_values(
         yield value
 
 
-def solve(puzzle: list[int], start_row: int) -> list[list[int]]:
+def solve(puzzle: list[int], start_row: int, zeros_count: int) -> list[list[int]]:
     solutions = []
     for row_index in range(start_row, 9):
         for col_index in range(9):
             if puzzle[row_index * 9 + col_index] == 0:
-                # TODO (Alexander Shein) Find the most constrained cell
                 for new_value in get_possible_cell_values(puzzle, row_index, col_index):
                     # We set the new value to [row_index, col_index] and reset it back after testing
                     puzzle[row_index * 9 + col_index] = new_value
-                    if is_solved(puzzle):
+                    if zeros_count == 1:
                         solutions.append([*puzzle])
                     else:
-                        solutions.extend(solve(puzzle, row_index))
+                        solutions.extend(solve(puzzle, row_index, zeros_count - 1))
                     if len(solutions) > 1:
                         raise InvalidPuzzleError("Puzzle has more than 1 solution")
                     puzzle[row_index * 9 + col_index] = 0
@@ -62,13 +56,16 @@ def sudoku_solver(puzzle: list[list[int]]) -> list[list[int]]:
     if len(puzzle) != 9 or any(len(row) != 9 for row in puzzle):
         raise InvalidPuzzleError("Invalid puzzle shape")
     _puzzle = list(chain(*puzzle))
+    zeros_count = 0
     for item in _puzzle:
+        if item == 0:
+            zeros_count += 1
         if not 0 <= item <= 9:
             raise InvalidPuzzleError(
                 "Cell value out of range 1~9 and 0 for empty cells"
             )
 
-    solutions = solve(_puzzle, 0)
+    solutions = solve(_puzzle, 0, zeros_count)
     if not solutions:
         raise InvalidPuzzleError("Unsolvable puzzle")
     return [solutions[0][offset : offset + 9] for offset in range(0, 81, 9)]
