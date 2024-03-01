@@ -1,11 +1,15 @@
 from typing import Iterator
 from itertools import chain
+from collections import namedtuple
 
 import cProfile
 import pprint as pp
 
 
 DEFAULT_BITMASK_VALUE = 0b111111111  # 9 ones
+RowColBoxIndices = namedtuple(
+    "RowColBoxIndices", ["row_index", "col_index", "box_index"]
+)
 
 
 class InvalidPuzzleError(Exception):
@@ -13,6 +17,15 @@ class InvalidPuzzleError(Exception):
 
 
 class SudokuSolver:
+    """
+    SudokuSolver uses slightly optimized approach to solve sudoku puzzles.
+    It starts with transforming 2d puzzle array into 1d representation.
+    After that we create bit masks for each row, column and box representing
+    Which numbers are still available. We use first 9 bits to represent number 1-9.
+
+    At each step the grid is modified and the solver function is called recursively.
+    """
+
     def __init__(self, puzzle: list[list[int]]):
         # It should raise an error in cases of:
         # invalid grid (not 9x9, cell with values not in the range 1~9);
@@ -25,14 +38,16 @@ class SudokuSolver:
         self.col_masks = [*self.row_masks]
         self.box_masks = [*self.row_masks]
 
-        self.todo = []  # indices of cells that we need to fill
+        self.todo: list[
+            RowColBoxIndices
+        ] = []  # row, col and box indices of cells that we need to fill
 
         for row_index in range(9):
             for col_index in range(9):
                 value = self.puzzle[row_index * 9 + col_index]
                 box_index = (row_index // 3) * 3 + col_index // 3
                 if value == 0:
-                    self.todo.append((row_index, col_index, box_index))
+                    self.todo.append(RowColBoxIndices(row_index, col_index, box_index))
                 elif 1 <= value <= 9:
                     # If the corresponding bit is alreay zero, it means the <value> has already been
                     # encountered for this row, col or box
@@ -76,13 +91,12 @@ class SudokuSolver:
             if allowed_row_values_mask & 1 << value:
                 yield value + 1
 
-    def get_number_of_possible_values(self, coordinates: tuple[int, int, int]) -> int:
+    def get_number_of_possible_values(self, coordinates: RowColBoxIndices) -> int:
         row_mask, col_mask, box_mask = (
-            self.row_masks[coordinates[0]],
-            self.col_masks[coordinates[1]],
-            self.box_masks[coordinates[2]],
+            self.row_masks[coordinates.row_index],
+            self.col_masks[coordinates.col_index],
+            self.box_masks[coordinates.box_index],
         )
-        # row_mask: int, col_mask: int, box_mask: int
         return (row_mask & col_mask & box_mask).bit_count()
 
     def _solve(
