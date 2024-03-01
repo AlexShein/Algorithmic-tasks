@@ -57,6 +57,11 @@ class SudokuSolver:
                     raise InvalidPuzzleError(
                         "Cell value out of range 1~9 and 0 for empty cells"
                     )
+        # Sorting todo list of cells by number of possible values
+        self.todo = sorted(
+            self.todo,
+            key=self.get_number_of_possible_values,
+        )
 
         self.todo_len = len(self.todo)
 
@@ -71,11 +76,26 @@ class SudokuSolver:
             if allowed_row_values_mask & 1 << value:
                 yield value + 1
 
+    def get_number_of_possible_values(self, coordinates: tuple[int, int, int]) -> int:
+        row_mask, col_mask, box_mask = (
+            self.row_masks[coordinates[0]],
+            self.col_masks[coordinates[1]],
+            self.box_masks[coordinates[2]],
+        )
+        # row_mask: int, col_mask: int, box_mask: int
+        return (row_mask & col_mask & box_mask).bit_count()
+
     def _solve(
         self,
         todo_index: int,
     ) -> list[list[int]]:
         solutions = []
+
+        # Sorting todos to get next promising value to top
+        self.todo[todo_index:] = sorted(
+            self.todo[todo_index:],
+            key=self.get_number_of_possible_values,
+        )
 
         row_index, col_index, box_index = self.todo[todo_index]
         for new_value in self.get_possible_cell_values(row_index, col_index):
@@ -147,56 +167,3 @@ if __name__ == "__main__":
     print("** Solution found! **")
     pp.pprint(solver_output)
     assert solver_output == solution, "Failed to solve sample sudoku"
-
-#     invalid_grid = [
-#         [1, 1, 3, 4, 5, 6, 7, 8, 9],
-#         [4, 0, 6, 7, 8, 9, 1, 2, 3],
-#         [7, 8, 9, 1, 2, 3, 4, 5, 6],
-#         [2, 3, 4, 5, 6, 7, 8, 9],
-#         [5, 6, 7, 8, 9, 1, 2, 3, 4],
-#         [8, 9, 1, 2, 3, 4, 5, 6, 7],
-#         [3, 4, 5, 6, 7, 8, 9, 1, 2],
-#         [6, 7, 8, 9, 1, 2, 3, 4, 5],
-#         [9, 1, 2, 3, 4, 5, 6, 7, 8],
-#     ]
-
-#     invalid_grid = [
-#         [1, 1, 3, 4, 5, 6, 7, 8, 9],
-#         [4, 0, 6, 7, 8, 9, 1, 2, 3],
-#         [7, 8, 9, 1, 2, 3, 4, 5, 6],
-#         [2, 3, 4, 5, 6, 7, 8, 9, 1],
-#         [5, 6, 7, 8, 9, 1, 2, 3, 4],
-#         [8, 9, 1, 2, 3, 4, 5, 6, 7],
-#         [3, 4, 5, 6, 7, 8, 9, 1, 2],
-#         [6, 7, 8, 9, 1, 2, 3, 4, 5],
-#         [9, 1, 2, 3, 4, 5, 6, 7, 8],
-#     ]
-
-#     solver_output = sudoku_solver(invalid_grid)
-#     print("some_solution")
-#     pp.pprint(solver_output)
-
-
-# [
-#     [1, 2, 3, 4, 5, 6, 7, 8, 9],
-#     [1, 0, 6, 7, 8, 9, 1, 2, 3],
-#     [7, 8, 9, 1, 2, 3, 4, 5, 6],
-#     [2, 3, 4, 5, 6, 7, 8, 9, 1],
-#     [5, 6, 7, 8, 9, 1, 2, 3, 4],
-#     [8, 9, 1, 2, 3, 4, 5, 6, 7],
-#     [3, 4, 5, 6, 7, 8, 9, 1, 2],
-#     [6, 7, 8, 9, 1, 2, 3, 4, 5],
-#     [9, 1, 2, 3, 4, 5, 6, 7, 8],
-# ]
-
-# [
-#     [1, 2, 3, 4, 5, 6, 7, 8, 9],
-#     [4, 0, 6, 7, 8, 9, 1, 2, 3],
-#     [7, 8, 1, 1, 2, 3, 4, 5, 6],
-#     [2, 3, 4, 5, 6, 7, 8, 9, 1],
-#     [5, 6, 7, 8, 9, 1, 2, 3, 4],
-#     [8, 9, 1, 2, 3, 4, 5, 6, 7],
-#     [3, 4, 5, 6, 7, 8, 9, 1, 2],
-#     [6, 7, 8, 9, 1, 2, 3, 4, 5],
-#     [9, 1, 2, 3, 4, 5, 6, 7, 8],
-# ]
