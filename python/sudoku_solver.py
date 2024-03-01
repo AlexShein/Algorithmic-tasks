@@ -97,11 +97,12 @@ class SudokuSolver:
 
         self.todo_len = len(self.todo)
 
-    def get_possible_cell_values(self, row_index: int, col_index: int) -> Iterator[int]:
+    def get_possible_cell_values(
+        self, row_index: int, col_index: int, box_index: int
+    ) -> Iterator[int]:
         """
         Return cell candidate values based on corresponding cell, column and row bitmasks.
         """
-        box_index = (row_index // 3) * 3 + col_index // 3
         allowed_row_values_mask = (
             self.row_masks[row_index]
             & self.col_masks[col_index]
@@ -147,7 +148,7 @@ class SudokuSolver:
         )
 
         row_index, col_index, box_index = self.todo[todo_index]
-        for new_value in self.get_possible_cell_values(row_index, col_index):
+        for new_value in self.get_possible_cell_values(row_index, col_index, box_index):
             # We set the new value to [row_index, col_index] and reset it back after testing
             self.puzzle[row_index * 9 + col_index] = new_value
             # Updating masks with the new value
