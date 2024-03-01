@@ -2,6 +2,7 @@ from typing import Iterator
 from itertools import chain
 from collections import namedtuple
 
+# Imports needed for debug purposes
 import cProfile
 import pprint as pp
 
@@ -13,27 +14,43 @@ RowColBoxIndices = namedtuple(
 
 
 class InvalidPuzzleError(Exception):
+    """
+    Custom exception is not really required, but looks way nicer in the code than e.g. generic ValueError.
+    """
+
     pass
 
 
 class SudokuSolver:
     """
-    SudokuSolver uses slightly optimized approach to solve sudoku puzzles.
+    SudokuSolver uses slightly optimized backtracking approach to solve sudoku puzzles.
     It starts with transforming 2d puzzle array into 1d representation.
     After that we create bit masks for each row, column and box representing
     Which numbers are still available. We use first 9 bits to represent number 1-9.
+    E.g. if [1, 2, 4] are possible values for the cell, it means that
+    row_mask & col_mask & box_mask == 0b000001011
 
     At each step the grid is modified and the solver function is called recursively.
     """
 
     def __init__(self, puzzle: list[list[int]]):
-        # It should raise an error in cases of:
-        # invalid grid (not 9x9, cell with values not in the range 1~9);
-        # multiple solutions for the same puzzle or the puzzle is unsolvable
+        """
+        Initializes the solver by:
+        - Converting puzzle to 1d list representation
+        - Initializing bit masks with ones
+        - Switching corresponding bits of masks to 0 if number is already used
+        - Creating the "todo" empty cell indicies
+        - Ordering "todo" by number of possible value (least first)
+
+        It should raise an error in cases of:
+        invalid grid (not 9x9, cell with values not in the range 1~9);
+        multiple solutions for the same puzzle or the puzzle is unsolvable.
+        """
         if len(puzzle) != 9 or any(len(row) != 9 for row in puzzle):
             raise InvalidPuzzleError("Invalid puzzle shape")
         self.puzzle = list(chain(*puzzle))
 
+        # Possible values bit masks for each row, column and box
         self.row_masks = [DEFAULT_BITMASK_VALUE for i in range(9)]
         self.col_masks = [*self.row_masks]
         self.box_masks = [*self.row_masks]
@@ -81,6 +98,9 @@ class SudokuSolver:
         self.todo_len = len(self.todo)
 
     def get_possible_cell_values(self, row_index: int, col_index: int) -> Iterator[int]:
+        """
+        Return cell candidate values based on corresponding cell, column and row bitmasks.
+        """
         box_index = (row_index // 3) * 3 + col_index // 3
         allowed_row_values_mask = (
             self.row_masks[row_index]
@@ -92,6 +112,11 @@ class SudokuSolver:
                 yield value + 1
 
     def get_number_of_possible_values(self, coordinates: RowColBoxIndices) -> int:
+        """
+        Returns count of possible candidate values for a cell.
+        Doing bitwise AND between corresponding row, column and box masks
+        And counting non-zero bits in the result.
+        """
         row_mask, col_mask, box_mask = (
             self.row_masks[coordinates.row_index],
             self.col_masks[coordinates.col_index],
@@ -103,6 +128,16 @@ class SudokuSolver:
         self,
         todo_index: int,
     ) -> list[list[int]]:
+        """
+        Main solver method. It is called recursively every time we make a gues for a cell.
+        Throws an exception if encounters more than 1 solution.
+
+        We find the next cell with least candidate values by sorting todos list.
+        After that we iterate over potential values, set each one to the grid, update bit masks for
+        row, column and box and call the solve method recursively if there are still cells left in the todo list.
+
+        After the recursive call, we cleanup the cell we made a guess for and restore bit masks.
+        """
         solutions = []
 
         # Sorting todos to get next promising value to top
@@ -138,6 +173,10 @@ class SudokuSolver:
         return solutions
 
     def solve(self):
+        """
+        Public wrapper for solve method.
+        Takes care of formatting the puzzle as a 2d list.
+        """
         solutions = self._solve(0)
         if not solutions:
             raise InvalidPuzzleError("Unsolvable puzzle")
@@ -145,6 +184,9 @@ class SudokuSolver:
 
 
 def sudoku_solver(puzzle: list[list[int]]) -> list[list[int]]:
+    """
+    This function is only required by the task.
+    """
     solver = SudokuSolver(puzzle)
     return solver.solve()
 
